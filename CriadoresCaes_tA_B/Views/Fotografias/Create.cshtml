@@ -1,0 +1,56 @@
+﻿@model CriadoresCaes_tA_B.Models.Fotografias
+
+@{
+    ViewData["Title"] = "Adicionar Fotografia";
+}
+
+<h1>Adicionar Fotografia de um cão</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            @* esta DIV é o local onde os erros gerados na ap serao reportados*@
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            @*ficheiro com a fotografia*@
+            <div class="form-group">
+                <label asp-for="Fotografia" class="control-label"></label>
+                <input asp-for="Fotografia" class="form-control" />
+                <span asp-validation-for="Fotografia" class="text-danger"></span>
+            </div>
+
+            @*data em que a foto foi tirada*@
+            <div class="form-group">
+                <label asp-for="DataFoto" class="control-label"></label>
+                <input type="date" asp-for="DataFoto" class="form-control" />
+                <span asp-validation-for="DataFoto" class="text-danger"></span>
+            </div>
+
+            @*local onde a foto foi tirada*@
+            <div class="form-group">
+                <label asp-for="Local" class="control-label"></label>
+                <input asp-for="Local" class="form-control" />
+                <span asp-validation-for="Local" class="text-danger"></span>
+            </div>
+
+            @*referencia ao cao fotografado*@
+            <div class="form-group">
+                <label asp-for="CaoFK" class="control-label"></label>
+                <select asp-for="CaoFK" class="form-control" asp-items="ViewBag.CaoFK"></select>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
