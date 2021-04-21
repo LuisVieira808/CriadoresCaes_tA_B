@@ -9,14 +9,19 @@
 <hr />
 <div class="row">
     <div class="col-md-4">
-        <form asp-action="Create">
+        @*se nao adicionarmos o atributo enctype="multipart/form-data" nao conseguimos enviar os ficheiros para o servidor*@
+        <form asp-action="Create" method="post" enctype="multipart/form-data">
             @* esta DIV é o local onde os erros gerados na ap serao reportados*@
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+
 
             @*ficheiro com a fotografia*@
             <div class="form-group">
                 <label asp-for="Fotografia" class="control-label"></label>
-                <input asp-for="Fotografia" class="form-control" />
+                @*codigo original criado pela template*@
+                @*<input asp-for="Fotografia" class="form-control" />*@
+                <input type="file" name="fotoCao" accept=".jpg,.png,.jpeg" style="color:blue;" />
                 <span asp-validation-for="Fotografia" class="text-danger"></span>
             </div>
 
@@ -37,7 +42,9 @@
             @*referencia ao cao fotografado*@
             <div class="form-group">
                 <label asp-for="CaoFK" class="control-label"></label>
-                <select asp-for="CaoFK" class="form-control" asp-items="ViewBag.CaoFK"></select>
+                <select asp-for="CaoFK" class="form-control" asp-items="ViewBag.CaoFK">
+                    <option value="0">Escolha um cão, por favor.</option>
+                </select>
             </div>
 
             <div class="form-group">

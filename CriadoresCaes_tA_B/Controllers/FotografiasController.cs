@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using CriadoresCaes_tA_B.Data;
 using CriadoresCaes_tA_B.Models;
+using Microsoft.AspNetCore.Http;
+using System.IO;
+using Microsoft.AspNetCore.Hosting;
 
 namespace CriadoresCaes_tA_B.Controllers
 {
@@ -18,9 +21,11 @@ namespace CriadoresCaes_tA_B.Controllers
        /// </summary>
         private readonly CriadoresCaesDB _context;
 
-        public FotografiasController(CriadoresCaesDB context)
-        {
+        private readonly IWebHostEnvironment _caminho;
+
+        public FotografiasController(CriadoresCaesDB context, IWebHostEnvironment caminho) {
             _context = context;
+            _caminho = caminho;
         }
 
         // GET: Fotografias
@@ -55,9 +60,28 @@ namespace CriadoresCaes_tA_B.Controllers
         }
 
         // GET: Fotografias/Create
+        /// <summary>
+        /// invoca, na primeira vez, a view com os dados de criação de uma fotografia
+        /// </summary>
+        /// <returns></returns>
         public IActionResult Create()
         {
-            ViewData["CaoFK"] = new SelectList(_context.Caes, "Id", "Id");
+            /*geração da lista de valores disponiveis na dropdown
+            o view transporta dodos a serem associados ao atributo 'CaoFK'
+            o selectlist é um tipo de daods especial que serve para armazenar a lista de opçoes
+            de um objecto do tipo <SELECT> do HTML
+            Contem dois valores: ID + nome a ser apresnetado no ecra
+
+            _context.Caes: representa a fonte dos dados na 
+                           pratica estamos a executar o comando sql
+                           Select * From Caes
+            vamos alterar a pesquisa para significar 
+            Select * From Caes Order By Nome 
+             
+            
+             */
+
+            ViewData["CaoFK"] = new SelectList(_context.Caes.OrderBy(c=>c.Nome), "Id", "Nome");
             return View();
         }
 
@@ -66,16 +90,89 @@ namespace CriadoresCaes_tA_B.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Fotografia,DataFoto,Local,CaoFK")] Fotografias fotografias)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Add(fotografias);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+        public async Task<IActionResult> Create([Bind("DataFoto,Local,CaoFK")] Fotografias foto, IFormFile fotoCao){
+            //avaliar se p utilizador escolheu uma opcao valida na dropdown do cao
+            if (foto.CaoFK < 0) {
+                //não foi escolhido um cao valido
+                ModelState.AddModelError("", "Não se esqueça de escolher um cão..");
             }
-            ViewData["CaoFK"] = new SelectList(_context.Caes, "Id", "Id", fotografias.CaoFK);
-            return View(fotografias);
+            /*processar ficheiro
+                -existe?
+                    -se não existe, o que fazer? => gerar uma mensagem de erro e devolver controlo a view
+                    -se continuo é porque o ficheiro existe
+                        -mas sera que é do tipo correto?
+                            -avaliar se é imagem
+                                -se sim:-especificar o seu novo nome 
+                                        -especificar a localização
+                                        -associar ao objeto foto o nome deste ficheiro
+                                        -guardar ficheiro no disco rigido do servidor
+                                -se não: => gerar uma mensagem de erro e devolver controlo a view
+             */
+            //defenir o novo nome da fotografia
+            string nomeImagem = "";
+            if (fotoCao == null) {
+                //não existe ficheiro
+                //adicionar msm de erro
+                ModelState.AddModelError("", "Adicione, por favor, a fotografia do cão");
+                //devolver controlo a view
+                ViewData["CaoFK"] = new SelectList(_context.Caes.OrderBy(c => c.Nome), "Id", "Nome");
+                return View(foto);
+            } else {
+                //ha ficheiro. mas será um ficheiro valido?
+                if(fotoCao.ContentType=="image/jpeg"|| fotoCao.ContentType == "image/png") {
+                    
+                    Guid g;
+                    g = Guid.NewGuid();
+                    nomeImagem = foto.CaoFK + "_" + g.ToString();
+                    //determinar a extenção da imagem
+                    string extensao = Path.GetExtension(fotoCao.FileName).ToLower();
+                    //agora consigo ter o nome final do ficheiro
+                    nomeImagem = nomeImagem + extensao;
+
+                    //associar este ficheiro aos dados da fotografia do cao
+                    foto.Fotografia = nomeImagem;
+
+                    //localização do armazenamento da imagem
+                    string localizacaoFicheiro = _caminho.WebRootPath;
+                    nomeImagem = Path.Combine(localizacaoFicheiro,"fotos",nomeImagem);
+
+
+
+                } else {
+                    ModelState.AddModelError("", "Adicione, por favor, a fotografia do cão");
+                    //devolver controlo a view
+                    ViewData["CaoFK"] = new SelectList(_context.Caes.OrderBy(c => c.Nome), "Id", "Nome");
+                    return View(foto);
+                }
+            }
+
+            
+
+                if (ModelState.IsValid) {
+                    try {
+                        //adicionar os dados da nova fotografia a base de dados
+                        _context.Add(foto);
+                        //consolidar os dados na base de dados
+                        await _context.SaveChangesAsync();
+
+                        //se cheguei ate aqui tudo correu bem 
+                       //vou guardar agora no disco rigido do servidor a imagem
+                        using var stream = new FileStream(nomeImagem, FileMode.Create);
+                        await fotoCao.CopyToAsync(stream);
+                        
+                        
+                        return RedirectToAction(nameof(Index));
+                    
+                     } catch (Exception) {
+                        ModelState.AddModelError("", "Ocorreu um erro...");
+                    }
+                }                
+            
+            else {
+                
+            }
+            ViewData["CaoFK"] = new SelectList(_context.Caes.OrderBy(c => c.Nome), "Id", "Nome", foto.CaoFK);
+            return View(foto);
         }
 
         // GET: Fotografias/Edit/5
