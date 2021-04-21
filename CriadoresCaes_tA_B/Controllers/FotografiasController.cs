@@ -41,22 +41,34 @@ namespace CriadoresCaes_tA_B.Controllers
         }
 
         // GET: Fotografias/Details/5
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
+        /// <summary>
+        /// mostra os detalhes de uma fotografia
+        /// </summary>
+        /// <param name="id">indentificador de fotografia</param>
+        /// <returns></returns>
+        public async Task<IActionResult> Details(int? id){
+            if (id == null) {
+                //entro aqui se nao foi especificado o ID
 
-            var fotografias = await _context.Fotografias
-                .Include(f => f.Cao)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (fotografias == null)
-            {
-                return NotFound();
-            }
+                //redirecionar para a pagina de inicio
+                return RedirectToAction("Index");
 
-            return View(fotografias);
+                //return NotFound();
+            }
+            //se chegar aqui, foi especificado um ID
+            //vou procurar se existe uma fotografia com esse valor
+            var fotografia = await _context.Fotografias
+                        .Include(f => f.Cao)
+                        .FirstOrDefaultAsync(f => f.Id == id);
+            if (fotografia == null) {
+                // o ID especificado nao corresponde a uma fotografia
+                //return NotFound();
+                //redirecionar para a pagina de inicio
+                return RedirectToAction("Index");
+            }
+            //se cheguei aqui é pq a foto existe e foi encontrada
+            //mostro-a na view
+            return View(fotografia);
         }
 
         // GET: Fotografias/Create
@@ -253,8 +265,20 @@ namespace CriadoresCaes_tA_B.Controllers
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var fotografias = await _context.Fotografias.FindAsync(id);
-            _context.Fotografias.Remove(fotografias);
-            await _context.SaveChangesAsync();
+            try {
+                //proteger a eleminação de uma foto
+                _context.Fotografias.Remove(fotografias);
+                await _context.SaveChangesAsync();
+
+                //nao esquecer remover o ficheiro da fotografia do disco rigido
+
+
+            } catch (Exception) {
+
+                throw;
+            }
+            
+            
             return RedirectToAction(nameof(Index));
         }
 
